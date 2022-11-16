@@ -1,0 +1,88 @@
+---
+title: "Commentary on Ledberg Reitan 2022: Increased risk of death immediately after discharge from compulsary care for substance abuse"
+author: "Guimond, Hauck, Turner"
+date: '`r Sys.Date()`'
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+########################
+# Library set-up       #
+########################
+library(tidyverse)
+
+########################
+# Read data set        #
+########################
+Table2Data <- read_csv(file = "LedbergTable2.csv")
+
+Table3Data <- read_csv(file = "LedbergTable3.csv")
+
+#######################################
+# Parsing time parameters             #
+#######################################
+
+Table2DayParameters <- Table2Data %>% 
+  filter(startsWith(parameter,"day")) %>% 
+  mutate(dayStart=as.numeric(str_sub(parameter,
+                          start = str_locate(parameter,pattern = " ")[,1]+1,
+                          end = str_locate(parameter,pattern = " to ")[,1]-1)),
+         dayEnd=as.numeric(str_sub(parameter,
+                          start = str_locate(parameter,pattern = " to ")[,2],
+                          end = str_length(parameter))))
+Table3DayParameters <- Table3Data %>% 
+  filter(startsWith(parameter,"day")) %>% 
+  mutate(dayStart=as.numeric(str_sub(parameter,
+                                     start = str_locate(parameter,pattern = " ")[,1]+1,
+                                     end = str_locate(parameter,pattern = " to ")[,1]-1)),
+         dayEnd=as.numeric(str_sub(parameter,
+                                   start = str_locate(parameter,pattern = " to ")[,2],
+                                   end = str_length(parameter))))
+
+```
+
+## Commentary
+
+First, we wish to commend the authors on this paper. It provides insight with a robust dataset on a very important question of mortality after discharge from mandated abstinence-based treatment. The authors have used a very comprehensive dataset to answer this question which strengthens the findings. Furthermore, the authors, by releasing the data along with the supplementary materials on a github repository, have allowed for careful scrutiny of their results and methods.
+
+We wish to point out that the analysis that gives rise to the data displayed in table 2 and 3 could be strengthened by an alternate choice of the reference time point. While we agree in principle with the findings of the study, the choice of reference period of "day 0-14" obscures the significance of the authors' findings. Given that the study is ultimately trying to demonstrate that this earliest time period has a higher mortality, it feels natural that the null hypothesis ought to be that it is not higher, and thus a comparison timepoint should be picked that would exentuate this finding. We would propose that choosing the final time period "day 182-366" period is the most appropriate choice for several reasons. First, it constitutes the longest period, and has sufficient events to provide a narrow range for a baseline 'rate' of mortality. Second, by using this as the reference point, one can then compare the later time points and the p-values for these rates help to discern at what point a difference might be observed. Finally, by picking the last point, it is quite easy to build confidence intervals around these times points which allow for simpler visualization of the effect. It is important to note, as the authors point out, that the choice of time periods is entirely arbitrary (a point we return to at the end of our commentary), however, a selection of a 2 week period is likely to have very few events (in this case they report only 21 deaths) and therefore the uncertainty in this interval could be higher. If one picks the last time period as the reference point it is possible that confidence interval could be quite large, or if sufficient events happen in the time point relative to its length it might be more narrow. By picking the first period as a reference point, it obscures the uncertainty in this choice and potentially detracts from the authors' findings.
+
+In this regard, we have taken the data as provided on the github repository and re-analyzed the data using the final time period as the reference point and have prepared plots of the estimated relative hazard rates for both the "external causes" and "all cause mortality" as reported in the original paper, and using the final time period as the reference group for comparison. As can be seen, 
+
+## Plots of estimated hazard rates
+
+```{r pressure, echo=FALSE}
+plot(x=c(Table2DayParameters$dayStart[1],Table2DayParameters$dayEnd[1]),
+     y=rep(Table2DayParameters$`hazard ratio`[1],2),
+     type="l",xlim=c(0,400),ylim=c(0,1.1),
+     xlab="Time(days)",ylab="Hazard ratio",
+     main="Relative hazard rate estimates for death due to 'external causes'\nin the reference group (young males in the first year)")
+for(i in 2:5) {
+  rect(Table2DayParameters$dayStart[i],Table2DayParameters$`lower CI`[i],
+       Table2DayParameters$dayEnd[i],Table2DayParameters$`upper CI`[i],
+       col=paste0(rainbow(4,s=0.125),"7F")[i-1],border=rainbow(4)[i-1])
+  lines(x=c(Table2DayParameters$dayStart[i],Table2DayParameters$dayEnd[i]),
+        y=rep(Table2DayParameters$`hazard ratio`[i],2),
+        col=rainbow(4)[i-1])
+}
+
+plot(x=c(Table3DayParameters$dayStart[1],Table3DayParameters$dayEnd[1]),
+     y=rep(Table3DayParameters$`hazard ratio`[1],2),
+     type="l",xlim=c(0,400),ylim=c(0,2.5),
+     xlab="Time(days)",ylab="Hazard ratio",
+     main="Relative hazard rate estimates for death due to 'other causes'\nin the reference group (young males in the first year)")
+for(i in 2:5) {
+  rect(Table3DayParameters$dayStart[i],Table3DayParameters$`lower CI`[i],
+       Table3DayParameters$dayEnd[i],Table3DayParameters$`upper CI`[i],
+       col=rainbow(4,s=0.125)[i-1],border=rainbow(4)[i-1])
+  lines(x=c(Table3DayParameters$dayStart[i],Table3DayParameters$dayEnd[i]),
+        y=rep(Table3DayParameters$`hazard ratio`[i],2),
+        col=rainbow(4)[i-1])
+}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Finally, with respect to the choice of time periods, we wish to point out that the hazard rate is essentially a comparison of the slope of the curves plotted in Figures 1 and 2 in the original paper. Examination of these plots is not convincing that there is sharp demarcation when the slopes change at the times points selected. We admit this is an academic point, selection of arbitrary timepoints and comparison of these, is helpful regardless of the choice to demonstrate that the hazard rate (and hence risk of death) is changing over time, a point that is convincing from this analsysi. We propose that an additional analysis might assist in determining the length of time after discharge that this risk is elevate, in order to guide policy makers in establishing protocols that may reduce this risks.  While we appreciate the difficulties in conducting and reporting on findings with event based data where rates are changing over time, and the lack of clear methods for such data, we would suggest that it might be useful to use a non-parametric approach and attempt to directly model this risk. Given that additional historical data was cited in the initial paper, there seems to be the potential to take a Bayesian approach that attempts to model the hazard rate as a continuous function. Whether a splines model or mixture of linear, quadratic, cubic or additional terms might be best would require data that retains the specific time to event and some model fitting, however, we suspect that such an approach would be ultimately beneficial in determining if there is a discrete point in time where the risk changes or if a smooth function of decreasing risk is present.
+
